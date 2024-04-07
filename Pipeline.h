@@ -3,25 +3,20 @@
 
 #include <queue>
 #include <string>
+#include "./main.cpp"// Import instruction definition
 
 using namespace std;
-
-class Instruction {
-public:
-    string type;
-    // add more attributes as needed
-};
 
 class Pipeline {
 private:
     int width;
     int clock;
 
-    queue<Instruction> IF;
-    queue<Instruction> ID;
-    queue<Instruction> EX;
-    queue<Instruction> MEM;
-    queue<Instruction> WB;
+    queue<Instruction*> IF;
+    queue<Instruction*> ID;
+    queue<Instruction*> EX;
+    queue<Instruction*> MEM;
+    queue<Instruction*> WB;
 
     int Stall;
     int ALU;
@@ -29,7 +24,7 @@ private:
     int Read;
     int Write;
 
-    queue<Instruction> instructionList;
+    queue<Instruction*> instructionList;
 
 public:
     Pipeline(int W);
@@ -43,7 +38,7 @@ private:
     void moveInstructionToWB();// MEM list
     void moveInstructionToMEM();// EX list
     void moveInstructionToEX();// ID list
-    bool moveInstructionToID();// IF list
+    void moveInstructionToID();// IF list
     void moveNextInstructionToIF();// Load traces for current cycle
 };
 
