@@ -25,6 +25,12 @@ Instruction Pipeline::getNextInstruction() {
 
 bool Pipeline::dependenciesSatisfied(Instruction& Ins) {
     // Implement logic to check if dependencies are satisfied
+    for (Instruction* dependency : Ins.dependencies) {
+        if (!dependency->executed) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void Pipeline::retireInstruction() {
