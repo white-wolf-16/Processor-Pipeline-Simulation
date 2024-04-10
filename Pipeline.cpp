@@ -20,6 +20,15 @@ void Pipeline::simulatePipeline() {
         // reopening locked ALU and FP for next cycle
         ALU = 0;
         FP = 0;
+        Read = 0;
+        Write = 0;
+
+        totalRetired = 0;
+        totalBranch = 0;
+        totalALU = 0;
+        totalFP = 0;
+        totalRead = 0;
+        totalWrite = 0;
     }
 }
 
@@ -39,17 +48,72 @@ bool Pipeline::dependenciesSatisfied(Instruction& Ins) {
 
 void Pipeline::retireInstruction() {
     // Implement logic to retire instructions
+    while (!WB.empty() && (WB.size() < width)) {
+        Instruction* instr = MEM.front();
+        if(instr->instructionType == BRANCH){
+            totalRetired+=1;
+            totalBranch+=1;
+        }   
+        if(instr->instructionType == INTEGER_INSTRUCTION){
+            totalRetired+=1;
+            totalALU+=1;
+        }   
+        if(instr->instructionType == FLOATING_POINT_INSTRUCTION){
+            totalRetired+=1;
+            totalFP+=1;
+        }   
+        if(instr->instructionType == LOAD){
+            totalRetired+=1;
+            totalRead+=1;
+        }  
+        if(instr->instructionType == STORE){
+            totalRetired+=1;
+            totalWrite+=1;
+        }  
+        WB.pop();
+
+        //call function to generate histogram for retired instructions
+
+    }
+
+    
 }
 
 void Pipeline::moveInstructionToWB() {
     // Implement logic to move instructions to WB
+    while (!MEM.empty() && (MEM.size() < width)) {
+        Instruction* instr = MEM.front();
+        if (dependenciesSatisfied(*instr)) {
+            if(instr->instructionType == BRANCH){
+                moveNextInstructionToIF(); // branch has executed so now a new instruction can be fetched
+            }   
+            if (instr->instructionType == LOAD) {
+                if (Read == 1)   // read in use by an instruction
+                    return;
+                else
+                    Read = 1;    
+            }
+            if (instr->instructionType == STORE) {
+                if (Write == 1)   
+                    return;
+                else
+                    Write = 1;    
+            }
+            MEM.pop();
+            if (instr->instructionType == LOAD || instr->instructionType == STORE) {
+            instr->executed = true;
+            }
+            WB.push(instr); 
+        }
+    }
+    
 }
 
 void Pipeline::moveInstructionToMEM() {
     // Implement logic to move instructions to MEM
     while (!EX.empty() && (MEM.size() < width)) {
         Instruction* instr = EX.front();
-        if (dependenciesSatisfied(instr)) {
+        if (dependenciesSatisfied(*instr)) {
             if (instr->instructionType == INTEGER_INSTRUCTION) {
                 if (ALU == 1)   // if ALU is already locked, break
                     return;
