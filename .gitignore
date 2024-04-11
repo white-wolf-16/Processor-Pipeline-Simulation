@@ -10,3 +10,15 @@
 
 # Built Visual Studio Code Extensions
 *.vsix
+/.vs/VSWorkspaceState.json
+/.vs/slnx.sqlite
+/.vs/ProjectSettings.json
+/.vs/cmpt305proj/v17/ipch/AutoPCH/83bbb10932a26542/PIPELINE.ipch
+/.vs/cmpt305proj/v17/Browse.VC.opendb
+/.vs/cmpt305proj/v17/Browse.VC.db-wal
+/.vs/cmpt305proj/v17/Browse.VC.db-shm
+/.vs/cmpt305proj/v17/Browse.VC.db
+/.vs/cmpt305proj/v17/.suo
+/.vs/cmpt305proj/FileContentIndex/read.lock
+/.vs/cmpt305proj/FileContentIndex/c1faf9a9-7214-403c-86fb-5db183f635b4.vsidx
+/.vs/cmpt305proj/FileContentIndex/aef2d36d-fcc2-4cbc-9123-cb4687279141.vsidx

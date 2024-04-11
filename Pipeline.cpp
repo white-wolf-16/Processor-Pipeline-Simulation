@@ -16,6 +16,10 @@ void Pipeline::simulatePipeline() {
         moveNextInstructionToIF();
 
         clock++;
+
+        // reopening locked ALU and FP for next cycle
+        ALU = 0;
+        FP = 0;
     }
 }
 
@@ -43,10 +47,43 @@ void Pipeline::moveInstructionToWB() {
 
 void Pipeline::moveInstructionToMEM() {
     // Implement logic to move instructions to MEM
+    while (!EX.empty() && (MEM.size() < width)) {
+        Instruction* instr = EX.front();
+        if (dependenciesSatisfied(instr)) {
+            if (instr->instructionType == INTEGER_INSTRUCTION) {
+                if (ALU == 1)   // if ALU is already locked, break
+                    return;
+                else
+                    ALU = 1;    // otherwise lock ALU - *should reset again for the next cycle in sim
+            }
+            if (instr->instructionType == FLOATING_POINT_INSTRUCTION) {
+                if (FP == 1)   // if FP is already locked, break
+                    return;
+                else
+                    FP = 1;    // otherwise lock FP - *should reset again for the next cycle in sim
+            }
+            if (instr->instructionType == BRANCH) {
+                Stall = 0;     // continue instruction
+            }
+            EX.pop();
+
+            if (instr->instructionType == INTEGER_INSTRUCTION || instr->instructionType == FLOATING_POINT_INSTRUCTION) {
+                instr->executed = true;
+            }
+            MEM.push(instr);
+
+        }
+
+    }
 }
 
 void Pipeline::moveInstructionToEX() {
     // Implement logic to move instructions to EX
+    while (!ID.empty() && (EX.size() < width)) {
+        Instruction* instr = ID.front();
+        ID.pop();
+        EX.push(instr);
+    }
 }
 
 void Pipeline::moveInstructionToID() {
