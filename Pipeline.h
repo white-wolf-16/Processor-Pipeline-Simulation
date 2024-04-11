@@ -38,7 +38,7 @@ public:
     void simulatePipeline();
 
 private:
-    Instruction getNextInstruction();
+    Instruction* getNextInstruction(const string& traceFile, unsigned int getLine);
     bool dependenciesSatisfied(Instruction& Ins);
 
     void retireInstruction();// WB list

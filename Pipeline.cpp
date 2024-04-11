@@ -32,8 +32,57 @@ void Pipeline::simulatePipeline() {
     }
 }
 
-Instruction Pipeline::getNextInstruction() {
+Instruction* Pipeline::getNextInstruction(const string& traceFile, unsigned int getLine) {
     // Implement logic to get the next instruction
+    string line;
+    unsigned int lineCount = 0;
+    ifstream file(traceFile);
+
+    if (!file.is_open()) {
+        cout << "Error: Unable to open file." << endl;
+        return nullptr;
+    }
+
+    // Skip lines until startInst is reached
+    while (getline(file, line)) {
+        lineCount++;
+        if (lineCount < getLine) {
+            continue;
+        }
+        break;
+    }
+
+    istringstream iss(line);
+    string token;
+    vector<string> tokens;
+    while (getline(iss, token, ',')) {
+        tokens.push_back(token);
+    }
+    if (tokens.size() < 2) {
+        cout << "Error: Malformed instruction on line " << lineCount << "." << endl;
+        return nullptr;
+    }
+
+    // Create the instruction object
+    Instruction* inst = new Instruction();
+    inst->pc = tokens[0];
+    inst->instructionType = getType(stoi(tokens[1]));
+
+    // Handle dependencies if present
+    for (size_t i = 2; i < tokens.size(); ++i) {
+        if (instructionMap.find(tokens[i]) != instructionMap.end()) {
+            Instruction* dependency = instructionMap[tokens[i]];
+            inst->dependencies.push_back(dependency);
+        }
+        else {
+            cout << "[Debug] Dependency '" << tokens[i] << "' not found." << endl;
+        }
+    }
+
+    // Store the instruction in the instruction map
+    instructionMap[inst->pc] = inst;
+
+    return inst;
 }
 
 bool Pipeline::dependenciesSatisfied(Instruction& Ins) {
