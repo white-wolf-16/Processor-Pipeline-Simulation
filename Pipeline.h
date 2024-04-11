@@ -24,6 +24,13 @@ private:
     int Read;
     int Write;
 
+    int totalRetired;
+    int totalBranch;
+    int totalALU;
+    int totalFP;
+    int totalRead;
+    int totalWrite;
+
     queue<Instruction*> instructionList;
 
 public:
