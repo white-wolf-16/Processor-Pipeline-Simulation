@@ -14,7 +14,9 @@ using namespace std;
 
 class Pipeline {
 private:
-    string traceFile;
+    ifstream file;
+    string line;
+
     unsigned int traceNumber;
 
     unsigned int width;
@@ -49,7 +51,7 @@ public:
     void simulatePipeline(unsigned int startInst, unsigned int instCount);
 
 private:
-    Instruction* getNextInstruction(unsigned int getLine);
+    Instruction* getNextInstruction();
     bool dependenciesSatisfied(Instruction& Ins);
 
     void retireInstruction();// WB list

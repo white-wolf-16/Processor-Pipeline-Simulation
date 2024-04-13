@@ -1,9 +1,9 @@
-#include "pipeline.h"
+#include "Pipeline.h"
 
 Pipeline::Pipeline(unsigned int width, string traceFile)
-    : traceFile(traceFile), // Initialize traceFile first
+    : 
       traceNumber(0),  // Initialize traceNumber
-      width(width),  // Initialize width next
+      width(width),  // Initialize width 
       clock(0),  // Initialize clock
       size(0), // Initialize number of instructions
       endInst(0), // Initialize ending instruction
@@ -11,13 +11,35 @@ Pipeline::Pipeline(unsigned int width, string traceFile)
       totalRetired(0), totalBranch(0), totalALU(0), totalFP(0), totalRead(0), totalWrite(0) // Initialize counts
 {
     // Initialize queues and maps here if needed
+    file.open(traceFile);
+    if (!file.is_open()) {
+        cout << "Error: Unable to open file." << endl;
+    }
 }
 
 void Pipeline::simulatePipeline(unsigned int startInst, unsigned int instCount) {
+    // Go to starting instruction in file
+    for (unsigned int i = 1; i < startInst; i++) {
+        getline(file, line);
+    }
+
     traceNumber = startInst;
     endInst = traceNumber + instCount - 1;
     while (traceNumber <= endInst || size > 0) {
         // FOR DEBUGGING
+
+        // if (clock % 1000000 == 0) {
+        //     cout << traceNumber << endl;
+        //     cout << instructionMap.size() << endl;
+        //     cout << "Trace: " << traceNumber << endl;
+        //     cout << "Current size of IF queue: " << IF.size() << endl;
+        //     cout << "Current size of ID queue: " << ID.size() << endl;
+        //     cout << "Current size of EX queue: " << EX.size() << endl;
+        //     cout << "Current size of MEM queue: " << MEM.size() << endl;
+        //     cout << "Current size of WB queue: " << WB.size() << endl;
+        //     cout << endl;
+        // }
+
         // cout << "Trace: " << traceNumber << endl;
         // cout << "Current size of IF queue: " << IF.size() << endl;
         // cout << "Current size of ID queue: " << ID.size() << endl;
@@ -52,34 +74,25 @@ void Pipeline::simulatePipeline(unsigned int startInst, unsigned int instCount) 
     cout << "Current value of totalWrite: " << totalWrite << endl;
 }
 
-Instruction* Pipeline::getNextInstruction(unsigned int getLine) {
+Instruction* Pipeline::getNextInstruction() {
     // Implement logic to get the next instruction
-    string line;
-    unsigned int lineCount = 0;
-    ifstream file(traceFile);
-
     if (!file.is_open()) {
         cout << "Error: Unable to open file." << endl;
         return nullptr;
     }
 
     // Skip lines until startInst is reached
-    while (getline(file, line)) {
-        lineCount++;
-        if (lineCount < getLine) {
-            continue;
-        }
-        break;
-    }
-
-    istringstream iss(line);
-    string token;
     vector<string> tokens;
-    while (getline(iss, token, ',')) {
-        tokens.push_back(token);
+    if (getline(file, line)) {
+        istringstream iss(line);
+        string token;
+
+        while (getline(iss, token, ',')) {
+            tokens.push_back(token);
+        }
     }
     if (tokens.size() < 2) {
-        cout << "Error: Malformed instruction on line " << lineCount << "." << endl;
+        cout << "Error: Malformed instruction." << endl;
         return nullptr;
     }
 
@@ -228,7 +241,7 @@ void Pipeline::moveInstructionToID() {
 void Pipeline::moveNextInstructionToIF() {
     // Implement logic to load traces for the current cycle
     while (IF.size() < width && traceNumber <= endInst && !Stall) {
-        Instruction* nextInstr = getNextInstruction(traceNumber);
+        Instruction* nextInstr = getNextInstruction();
         IF.push(nextInstr);
         traceNumber++;
         size++;
