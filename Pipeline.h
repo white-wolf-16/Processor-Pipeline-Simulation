@@ -39,12 +39,7 @@ private:
     bool Read;
     bool Write;
 
-    int totalRetired;
-    int totalBranch;
-    int totalALU;
-    int totalFP;
-    int totalRead;
-    int totalWrite;
+    int totals [6]; // Store the sum of retired instruction types: Total: [0]; INTEGER: [1]; FP: [2]; BRANCH: [3]; LOAD: [4]; STORE: [5]
 
 public:
     Pipeline(unsigned int width, string traceFile);

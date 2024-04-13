@@ -7,13 +7,15 @@ Pipeline::Pipeline(unsigned int width, string traceFile)
       clock(0),  // Initialize clock
       size(0), // Initialize number of instructions
       endInst(0), // Initialize ending instruction
-      Stall(false), ALU(false), FP(false), Read(false), Write(false), // Initialize resource flags
-      totalRetired(0), totalBranch(0), totalALU(0), totalFP(0), totalRead(0), totalWrite(0) // Initialize counts
+      Stall(false), ALU(false), FP(false), Read(false), Write(false) // Initialize resource flags
 {
     // Initialize queues and maps here if needed
     file.open(traceFile);
     if (!file.is_open()) {
         cout << "Error: Unable to open file." << endl;
+    }
+    for (int i = 0; i < 6; i++) {
+        totals[i] = 0;
     }
 }
 
@@ -64,14 +66,15 @@ void Pipeline::simulatePipeline(unsigned int startInst, unsigned int instCount) 
         Read = 0;
         Write = 0;
     }
-    // FOR DEBUGGING
-    cout << "Total Cycles: " << clock << endl;
-    cout << "Current value of totalRetired: " << totalRetired << endl;
-    cout << "Current value of totalBranch: " << totalBranch << endl;
-    cout << "Current value of totalALU: " << totalALU << endl;
-    cout << "Current value of totalFP: " << totalFP << endl;
-    cout << "Current value of totalRead: " << totalRead << endl;
-    cout << "Current value of totalWrite: " << totalWrite << endl;
+
+    cout << "Total Cycles: " << clock << endl << endl;
+    cout << "Histogram: " << endl;
+    cout << "Integer: " << static_cast<double>(totals[1]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Floating Point: " << static_cast<double>(totals[2]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Branched: " << static_cast<double>(totals[3]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Load: " << static_cast<double>(totals[4]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Store: " << static_cast<double>(totals[5]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Total: " << totals[0] << endl;
 }
 
 Instruction* Pipeline::getNextInstruction() {
@@ -132,22 +135,8 @@ void Pipeline::retireInstruction() {
     // Implement logic to retire instructions
     while (!WB.empty()) {
         Instruction* instr = WB.front();
-        if(instr->instructionType == BRANCH){
-            totalBranch+=1;
-        }   
-        if(instr->instructionType == INTEGER_INSTRUCTION){
-            totalALU+=1;
-        }   
-        if(instr->instructionType == FLOATING_POINT_INSTRUCTION){
-            totalFP+=1;
-        }   
-        if(instr->instructionType == LOAD){
-            totalRead+=1;
-        }  
-        if(instr->instructionType == STORE){
-            totalWrite+=1;
-        }  
-        totalRetired+=1;
+        totals[static_cast<int>(instr->instructionType)]++;
+        totals[0]++;
         size--;
         WB.pop();
 
