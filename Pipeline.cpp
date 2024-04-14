@@ -75,6 +75,13 @@ void Pipeline::simulatePipeline(unsigned int startInst, unsigned int instCount) 
     cout << "Load: " << static_cast<double>(totals[4]) * 100.0 /totals[0] << "%" << endl;
     cout << "Store: " << static_cast<double>(totals[5]) * 100.0 /totals[0] << "%" << endl;
     cout << "Total: " << totals[0] << endl;
+
+    //clean up
+    file.close();
+    
+    for (auto const& x : instructionMap) {
+        delete x.second;
+    }
 }
 
 Instruction* Pipeline::getNextInstruction() {
@@ -113,6 +120,12 @@ Instruction* Pipeline::getNextInstruction() {
         else {
             cout << "[Debug] Dependency '" << tokens[i] << "' not found." << endl;
         }
+    }
+
+    // Free discarded memory
+    auto it = instructionMap.find(inst->pc);
+    if (it != instructionMap.end()) {
+        delete it->second;
     }
 
     // Store the instruction in the instruction map
