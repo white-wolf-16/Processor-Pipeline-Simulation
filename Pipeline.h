@@ -3,14 +3,27 @@
 
 #include <queue>
 #include <string>
-#include "./main.cpp"// Import instruction definition
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <unordered_map>
+#include "Instruction.h"
 
 using namespace std;
 
 class Pipeline {
 private:
-    int width;
-    int clock;
+    ifstream file;
+    string line;
+
+    unsigned int traceNumber;
+
+    unsigned int width;
+    unsigned int clock;
+    unsigned int size; // Number of instruction in pipeline
+
+    unsigned int endInst;
 
     queue<Instruction*> IF;
     queue<Instruction*> ID;
@@ -18,27 +31,22 @@ private:
     queue<Instruction*> MEM;
     queue<Instruction*> WB;
 
-    int Stall;
-    int ALU;
-    int FP;
-    int Read;
-    int Write;
+    unordered_map<string, Instruction*> instructionMap;
 
-    int totalRetired;
-    int totalBranch;
-    int totalALU;
-    int totalFP;
-    int totalRead;
-    int totalWrite;
+    bool Stall;
+    bool ALU;
+    bool FP;
+    bool Read;
+    bool Write;
 
-    queue<Instruction*> instructionList;
+    int totals [6]; // Store the sum of retired instruction types: Total: [0]; INTEGER: [1]; FP: [2]; BRANCH: [3]; LOAD: [4]; STORE: [5]
 
 public:
-    Pipeline(int W);
-    void simulatePipeline();
+    Pipeline(unsigned int width, string traceFile);
+    void simulatePipeline(unsigned int startInst, unsigned int instCount);
 
 private:
-    Instruction* getNextInstruction(const string& traceFile, unsigned int getLine);
+    Instruction* getNextInstruction();
     bool dependenciesSatisfied(Instruction& Ins);
 
     void retireInstruction();// WB list

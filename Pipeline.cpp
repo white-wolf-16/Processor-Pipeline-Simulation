@@ -1,12 +1,55 @@
-#include "pipeline.h"
+#include "Pipeline.h"
 
-Pipeline::Pipeline(int W) {
-    width = W;
-    // Initialize other variables here
+Pipeline::Pipeline(unsigned int width, string traceFile)
+    : 
+      traceNumber(0),  // Initialize traceNumber
+      width(width),  // Initialize width 
+      clock(0),  // Initialize clock
+      size(0), // Initialize number of instructions
+      endInst(0), // Initialize ending instruction
+      Stall(false), ALU(false), FP(false), Read(false), Write(false) // Initialize resource flags
+{
+    // Initialize queues and maps here if needed
+    file.open(traceFile);
+    if (!file.is_open()) {
+        cout << "Error: Unable to open file." << endl;
+    }
+    for (int i = 0; i < 6; i++) {
+        totals[i] = 0;
+    }
 }
 
-void Pipeline::simulatePipeline() {
-    while (true) {
+void Pipeline::simulatePipeline(unsigned int startInst, unsigned int instCount) {
+    // Go to starting instruction in file
+    for (unsigned int i = 1; i < startInst; i++) {
+        getline(file, line);
+    }
+
+    traceNumber = startInst;
+    endInst = traceNumber + instCount - 1;
+    while (traceNumber <= endInst || size > 0) {
+        // FOR DEBUGGING
+
+        // if (clock % 1000000 == 0) {
+        //     cout << traceNumber << endl;
+        //     cout << instructionMap.size() << endl;
+        //     cout << "Trace: " << traceNumber << endl;
+        //     cout << "Current size of IF queue: " << IF.size() << endl;
+        //     cout << "Current size of ID queue: " << ID.size() << endl;
+        //     cout << "Current size of EX queue: " << EX.size() << endl;
+        //     cout << "Current size of MEM queue: " << MEM.size() << endl;
+        //     cout << "Current size of WB queue: " << WB.size() << endl;
+        //     cout << endl;
+        // }
+
+        // cout << "Trace: " << traceNumber << endl;
+        // cout << "Current size of IF queue: " << IF.size() << endl;
+        // cout << "Current size of ID queue: " << ID.size() << endl;
+        // cout << "Current size of EX queue: " << EX.size() << endl;
+        // cout << "Current size of MEM queue: " << MEM.size() << endl;
+        // cout << "Current size of WB queue: " << WB.size() << endl;
+        // cout << endl;
+
         // Perform pipeline stages
         retireInstruction();
         moveInstructionToWB();
@@ -22,44 +65,37 @@ void Pipeline::simulatePipeline() {
         FP = 0;
         Read = 0;
         Write = 0;
-
-        totalRetired = 0;
-        totalBranch = 0;
-        totalALU = 0;
-        totalFP = 0;
-        totalRead = 0;
-        totalWrite = 0;
     }
+
+    cout << "Total Cycles: " << clock << endl << endl;
+    cout << "Histogram: " << endl;
+    cout << "Integer: " << static_cast<double>(totals[1]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Floating Point: " << static_cast<double>(totals[2]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Branched: " << static_cast<double>(totals[3]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Load: " << static_cast<double>(totals[4]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Store: " << static_cast<double>(totals[5]) * 100.0 /totals[0] << "%" << endl;
+    cout << "Total: " << totals[0] << endl;
 }
 
-Instruction* Pipeline::getNextInstruction(const string& traceFile, unsigned int getLine) {
+Instruction* Pipeline::getNextInstruction() {
     // Implement logic to get the next instruction
-    string line;
-    unsigned int lineCount = 0;
-    ifstream file(traceFile);
-
     if (!file.is_open()) {
         cout << "Error: Unable to open file." << endl;
         return nullptr;
     }
 
     // Skip lines until startInst is reached
-    while (getline(file, line)) {
-        lineCount++;
-        if (lineCount < getLine) {
-            continue;
-        }
-        break;
-    }
-
-    istringstream iss(line);
-    string token;
     vector<string> tokens;
-    while (getline(iss, token, ',')) {
-        tokens.push_back(token);
+    if (getline(file, line)) {
+        istringstream iss(line);
+        string token;
+
+        while (getline(iss, token, ',')) {
+            tokens.push_back(token);
+        }
     }
     if (tokens.size() < 2) {
-        cout << "Error: Malformed instruction on line " << lineCount << "." << endl;
+        cout << "Error: Malformed instruction." << endl;
         return nullptr;
     }
 
@@ -97,28 +133,11 @@ bool Pipeline::dependenciesSatisfied(Instruction& Ins) {
 
 void Pipeline::retireInstruction() {
     // Implement logic to retire instructions
-    while (!WB.empty() && (WB.size() < width)) {
-        Instruction* instr = MEM.front();
-        if(instr->instructionType == BRANCH){
-            totalRetired+=1;
-            totalBranch+=1;
-        }   
-        if(instr->instructionType == INTEGER_INSTRUCTION){
-            totalRetired+=1;
-            totalALU+=1;
-        }   
-        if(instr->instructionType == FLOATING_POINT_INSTRUCTION){
-            totalRetired+=1;
-            totalFP+=1;
-        }   
-        if(instr->instructionType == LOAD){
-            totalRetired+=1;
-            totalRead+=1;
-        }  
-        if(instr->instructionType == STORE){
-            totalRetired+=1;
-            totalWrite+=1;
-        }  
+    while (!WB.empty()) {
+        Instruction* instr = WB.front();
+        totals[static_cast<int>(instr->instructionType)]++;
+        totals[0]++;
+        size--;
         WB.pop();
 
         //call function to generate histogram for retired instructions
@@ -130,29 +149,13 @@ void Pipeline::retireInstruction() {
 
 void Pipeline::moveInstructionToWB() {
     // Implement logic to move instructions to WB
-    while (!MEM.empty() && (MEM.size() < width)) {
+    while (!MEM.empty())
+    {
         Instruction* instr = MEM.front();
-        if (dependenciesSatisfied(*instr)) {
-            if(instr->instructionType == BRANCH){
-                moveNextInstructionToIF(); // branch has executed so now a new instruction can be fetched
-            }   
-            if (instr->instructionType == LOAD) {
-                if (Read == 1)   // read in use by an instruction
-                    return;
-                else
-                    Read = 1;    
-            }
-            if (instr->instructionType == STORE) {
-                if (Write == 1)   
-                    return;
-                else
-                    Write = 1;    
-            }
-            MEM.pop();
-            if (instr->instructionType == LOAD || instr->instructionType == STORE) {
+        MEM.pop();
+        WB.push(instr);
+        if (instr->instructionType == LOAD || instr->instructionType == STORE) {
             instr->executed = true;
-            }
-            WB.push(instr); 
         }
     }
     
@@ -160,42 +163,57 @@ void Pipeline::moveInstructionToWB() {
 
 void Pipeline::moveInstructionToMEM() {
     // Implement logic to move instructions to MEM
-    while (!EX.empty() && (MEM.size() < width)) {
+    while (!EX.empty()) {
         Instruction* instr = EX.front();
-        if (dependenciesSatisfied(*instr)) {
-            if (instr->instructionType == INTEGER_INSTRUCTION) {
-                if (ALU == 1)   // if ALU is already locked, break
-                    return;
-                else
-                    ALU = 1;    // otherwise lock ALU - *should reset again for the next cycle in sim
-            }
-            if (instr->instructionType == FLOATING_POINT_INSTRUCTION) {
-                if (FP == 1)   // if FP is already locked, break
-                    return;
-                else
-                    FP = 1;    // otherwise lock FP - *should reset again for the next cycle in sim
-            }
-            if (instr->instructionType == BRANCH) {
-                Stall = 0;     // continue instruction
-            }
-            EX.pop();
-
-            if (instr->instructionType == INTEGER_INSTRUCTION || instr->instructionType == FLOATING_POINT_INSTRUCTION) {
-                instr->executed = true;
-            }
-            MEM.push(instr);
-
+        if(instr->instructionType == BRANCH){
+            moveNextInstructionToIF(); // branch has executed so now a new instruction can be fetched
+        }   
+        if (instr->instructionType == LOAD) {
+            if (Read)   // read in use by an instruction
+                return;
+            else
+                Read = true;    
         }
-
+        if (instr->instructionType == STORE) {
+            if (Write)   
+                return;
+            else
+                Write = true;    
+        }
+        EX.pop();
+        if (instr->instructionType == INTEGER_INSTRUCTION || instr->instructionType == FLOATING_POINT_INSTRUCTION || instr->instructionType == BRANCH) {
+            instr->executed = true;
+        }
+        MEM.push(instr);
     }
+    
 }
 
 void Pipeline::moveInstructionToEX() {
     // Implement logic to move instructions to EX
     while (!ID.empty() && (EX.size() < width)) {
         Instruction* instr = ID.front();
-        ID.pop();
-        EX.push(instr);
+        if (dependenciesSatisfied(*instr)) {
+            if (instr->instructionType == INTEGER_INSTRUCTION) {
+                if (ALU)   // if ALU is already locked, break
+                    return;
+                else
+                    ALU = true;    // otherwise lock ALU - *should reset again for the next cycle in sim
+            }
+            if (instr->instructionType == FLOATING_POINT_INSTRUCTION) {
+                if (FP)   // if FP is already locked, break
+                    return;
+                else
+                    FP = true;    // otherwise lock FP - *should reset again for the next cycle in sim
+            }
+            if (instr->instructionType == BRANCH) {
+                Stall = false;     // continue instruction
+            }
+            ID.pop();
+
+            EX.push(instr);
+        }
+        else return;
     }
 }
 
@@ -211,15 +229,14 @@ void Pipeline::moveInstructionToID() {
 
 void Pipeline::moveNextInstructionToIF() {
     // Implement logic to load traces for the current cycle
-    if (Stall == 1) {
-        while (IF.size() < width) {
-            Instruction* nextInstr = instructionList.front();
-            instructionList.pop();
-            IF.push(nextInstr);
-            if (nextInstr->instructionType == 3) { // Branch
-                Stall == 1;
-                break;
-            }
+    while (IF.size() < width && traceNumber <= endInst && !Stall) {
+        Instruction* nextInstr = getNextInstruction();
+        IF.push(nextInstr);
+        traceNumber++;
+        size++;
+        if (nextInstr->instructionType == BRANCH) { // Branch
+            Stall = true;
+            break;
         }
     }
 }
